@@ -12,7 +12,7 @@ export default async function AdminLayout({ children }) {
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar role="admin" />
-      <main className="flex-1 p-6 overflow-auto">{children}</main>
+      <main className="flex-1  overflow-auto">{children}</main>
     </div>
   );
 }

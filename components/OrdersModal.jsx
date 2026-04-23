@@ -24,64 +24,300 @@ export default function OrdersModal({ date, onClose }) {
     fetchOrders();
   }, [date]);
 
-  // Close detail modal
-  const handleCloseDetail = () => setSelectedOrder(null);
+  const formattedDate = new Date(date).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const totalRevenue = orders.reduce((a, o) => a + (o.totalAmount || 0), 0);
+  const totalProfit = orders.reduce((a, o) => a + (o.totalProfit || 0), 0);
 
   return (
     <>
-      {/* Overlay */}
-      <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
+      <style>{`
+        @keyframes backdropIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes modalSlideUp {
+          from { opacity: 0; transform: translate(-50%, calc(-50% + 24px)); }
+          to   { opacity: 1; transform: translate(-50%, -50%); }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .order-row:hover { background: #f8fafc; }
+        .close-btn:hover { background: #f1f5f9; color: #334155 !important; }
+        @media (max-width: 600px) {
+          .orders-modal { width: calc(100vw - 24px) !important; max-height: 90vh !important; top: auto !important; bottom: 12px !important; left: 12px !important; transform: none !important; border-radius: 20px 20px 16px 16px !important; animation: none !important; }
+          .detail-modal { width: calc(100vw - 24px) !important; max-height: 92vh !important; }
+        }
+      `}</style>
 
-      {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[80vh] bg-white rounded-xl shadow-xl z-50 overflow-hidden">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-bold text-slate-800">
-            Orders for {new Date(date).toLocaleDateString()}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-xl"
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15,23,42,0.45)",
+          zIndex: 40,
+          animation: "backdropIn 0.2s ease",
+        }}
+      />
+
+      {/* Main Modal */}
+      <div
+        className="orders-modal"
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "100%",
+          maxWidth: 640,
+          maxHeight: "82vh",
+          background: "#fff",
+          borderRadius: 20,
+          boxShadow: "0 24px 64px rgba(15,23,42,0.18)",
+          zIndex: 50,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          animation: "modalSlideUp 0.25s cubic-bezier(0.16,1,0.3,1)",
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: "18px 20px 16px",
+            borderBottom: "1px solid #f1f5f9",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
           >
-            ✕
-          </button>
+            <div>
+              <p
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#94a3b8",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.6px",
+                  margin: "0 0 4px",
+                }}
+              >
+                Daily Orders
+              </p>
+              <h3
+                style={{
+                  fontSize: 17,
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  margin: 0,
+                }}
+              >
+                {formattedDate}
+              </h3>
+            </div>
+            <button
+              className="close-btn"
+              onClick={onClose}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                border: "1px solid #e2e8f0",
+                background: "transparent",
+                cursor: "pointer",
+                color: "#94a3b8",
+                fontSize: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.15s",
+                flexShrink: 0,
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Summary pills */}
+          {!loading && orders.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                marginTop: 14,
+                flexWrap: "wrap",
+              }}
+            >
+              {[
+                {
+                  label: `${orders.length} order${orders.length !== 1 ? "s" : ""}`,
+                  color: "#475569",
+                  bg: "#f1f5f9",
+                  border: "#e2e8f0",
+                },
+                {
+                  label: `Rs. ${totalRevenue.toFixed(2)} revenue`,
+                  color: "#1d4ed8",
+                  bg: "#eff6ff",
+                  border: "#bfdbfe",
+                },
+                {
+                  label: `Rs. ${totalProfit.toFixed(2)} profit`,
+                  color: "#15803d",
+                  bg: "#f0fdf4",
+                  border: "#bbf7d0",
+                },
+              ].map((p) => (
+                <span
+                  key={p.label}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: "4px 12px",
+                    borderRadius: 20,
+                    color: p.color,
+                    background: p.bg,
+                    border: `1px solid ${p.border}`,
+                  }}
+                >
+                  {p.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
+        {/* Body */}
+        <div style={{ overflowY: "auto", padding: "12px 16px 16px", flex: 1 }}>
           {loading ? (
-            <p className="text-center text-slate-500 py-8">Loading orders...</p>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "48px 0",
+                gap: 14,
+              }}
+            >
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  border: "3px solid #e2e8f0",
+                  borderTop: "3px solid #4988C4",
+                  borderRadius: "50%",
+                  animation: "spin 0.75s linear infinite",
+                }}
+              />
+              <p style={{ fontSize: 14, color: "#94a3b8", margin: 0 }}>
+                Fetching orders…
+              </p>
+            </div>
           ) : orders.length === 0 ? (
-            <p className="text-center text-slate-500 py-8">
-              No orders found for this date.
-            </p>
+            <div style={{ textAlign: "center", padding: "48px 0" }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📭</div>
+              <p
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "#334155",
+                  margin: "0 0 4px",
+                }}
+              >
+                No orders
+              </p>
+              <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>
+                There are no orders recorded for this date.
+              </p>
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {orders.map((order) => (
                 <div
                   key={order._id}
-                  className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 cursor-pointer transition"
+                  className="order-row"
                   onClick={() => setSelectedOrder(order)}
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                    cursor: "pointer",
+                    transition: "background 0.15s",
+                  }}
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-slate-800">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <p
+                        style={{
+                          fontWeight: 700,
+                          color: "#0f172a",
+                          margin: "0 0 3px",
+                          fontSize: 14,
+                        }}
+                      >
                         {order.invoiceNumber}
                       </p>
-                      <p className="text-sm text-slate-500">
-                        {new Date(order.createdAt).toLocaleTimeString()}
+                      <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
+                        {new Date(order.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-slate-800">
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <p
+                        style={{
+                          fontWeight: 700,
+                          color: "#0f172a",
+                          margin: "0 0 3px",
+                          fontSize: 15,
+                        }}
+                      >
                         Rs. {order.totalAmount.toFixed(2)}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {order.items?.length || 0} item(s)
+                      <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
+                        {order.items?.length || 0} item
+                        {order.items?.length !== 1 ? "s" : ""}
                       </p>
                     </div>
                   </div>
-                  <div className="mt-2 text-sm text-slate-600">
-                    Cashier: {order.cashier?.name || "Unknown"} •{" "}
-                    {order.paymentMethod}
+                  <div
+                    style={{
+                      marginTop: 10,
+                      display: "flex",
+                      gap: 6,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span style={tagStyle("#f1f5f9", "#475569", "#e2e8f0")}>
+                      {order.cashier?.name || "Unknown"}
+                    </span>
+                    <span style={tagStyle("#eff6ff", "#1d4ed8", "#bfdbfe")}>
+                      {order.paymentMethod}
+                    </span>
+                    {order.totalProfit != null && (
+                      <span style={tagStyle("#f0fdf4", "#15803d", "#bbf7d0")}>
+                        +Rs. {order.totalProfit.toFixed(2)}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -90,98 +326,341 @@ export default function OrdersModal({ date, onClose }) {
         </div>
       </div>
 
-      {/* Order Detail Modal */}
+      {/* Detail Modal */}
       {selectedOrder && (
-        <OrderDetailModal order={selectedOrder} onClose={handleCloseDetail} />
+        <OrderDetailModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+        />
       )}
     </>
   );
 }
 
-// Inner component for order details
+function tagStyle(bg, color, border) {
+  return {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "3px 10px",
+    borderRadius: 20,
+    background: bg,
+    color,
+    border: `1px solid ${border}`,
+    display: "inline-block",
+  };
+}
+
 function OrderDetailModal({ order, onClose }) {
+  const margin = order.totalAmount
+    ? Math.round((order.totalProfit / order.totalAmount) * 100)
+    : 0;
+
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h4 className="font-bold text-slate-800">Order Details</h4>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-xl"
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 60,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <style>{`
+        @keyframes detailIn {
+          from { opacity: 0; transform: scale(0.97); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        .detail-close:hover { background: #f1f5f9 !important; color: #334155 !important; }
+        .item-row:hover td { background: #f8fafc; }
+      `}</style>
+
+      <div
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "rgba(15,23,42,0.3)",
+        }}
+      />
+
+      <div
+        className="detail-modal"
+        style={{
+          position: "relative",
+          background: "#fff",
+          borderRadius: 20,
+          boxShadow: "0 32px 80px rgba(15,23,42,0.22)",
+          width: "100%",
+          maxWidth: 520,
+          maxHeight: "84vh",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          animation: "detailIn 0.2s cubic-bezier(0.16,1,0.3,1)",
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: "18px 20px 16px",
+            borderBottom: "1px solid #f1f5f9",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
           >
-            ✕
-          </button>
-        </div>
-        <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
-          <div className="mb-4">
-            <p className="text-sm text-slate-500">Invoice Number</p>
-            <p className="font-medium">{order.invoiceNumber}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <p className="text-sm text-slate-500">Date & Time</p>
-              <p className="font-medium">
-                {new Date(order.createdAt).toLocaleString()}
+              <p
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#94a3b8",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.6px",
+                  margin: "0 0 3px",
+                }}
+              >
+                Invoice
               </p>
+              <h4
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  margin: 0,
+                }}
+              >
+                {order.invoiceNumber}
+              </h4>
             </div>
-            <div>
-              <p className="text-sm text-slate-500">Cashier</p>
-              <p className="font-medium">{order.cashier?.name || "Unknown"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Payment Method</p>
-              <p className="font-medium">{order.paymentMethod}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Total Items</p>
-              <p className="font-medium">{order.items?.length || 0}</p>
-            </div>
+            <button
+              className="detail-close"
+              onClick={onClose}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                border: "1px solid #e2e8f0",
+                background: "transparent",
+                cursor: "pointer",
+                color: "#94a3b8",
+                fontSize: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.15s",
+              }}
+            >
+              ✕
+            </button>
           </div>
-          <div className="border-t pt-4">
-            <h5 className="font-medium text-slate-700 mb-2">Items</h5>
-            <table className="w-full text-sm">
-              <thead className="text-slate-500 border-b">
-                <tr>
-                  <th className="text-left py-2">Product</th>
-                  <th className="text-right py-2">Qty</th>
-                  <th className="text-right py-2">Price</th>
-                  <th className="text-right py-2">Total</th>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{ overflowY: "auto", flex: 1, padding: "16px 20px 20px" }}>
+          {/* Meta grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 10,
+              marginBottom: 16,
+            }}
+          >
+            {[
+              {
+                label: "Date & Time",
+                value: new Date(order.createdAt).toLocaleString(),
+              },
+              { label: "Cashier", value: order.cashier?.name || "Unknown" },
+              { label: "Payment", value: order.paymentMethod },
+              {
+                label: "Items",
+                value: `${order.items?.length || 0} item${order.items?.length !== 1 ? "s" : ""}`,
+              },
+            ].map((m) => (
+              <div
+                key={m.label}
+                style={{
+                  background: "#f8fafc",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  border: "1px solid #f1f5f9",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 11,
+                    color: "#94a3b8",
+                    margin: "0 0 3px",
+                    fontWeight: 500,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  {m.label}
+                </p>
+                <p
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#0f172a",
+                    margin: 0,
+                  }}
+                >
+                  {m.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Items table */}
+          <div
+            style={{
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              overflow: "hidden",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 13,
+              }}
+            >
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  {["Product", "Qty", "Price", "Total"].map((h, i) => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: "10px 14px",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: "#94a3b8",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        textAlign: i === 0 ? "left" : "right",
+                        borderBottom: "1px solid #e2e8f0",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {order.items.map((item, idx) => (
-                  <tr key={idx} className="border-b border-slate-100">
-                    <td className="py-2">{item.product?.name || "Product"}</td>
-                    <td className="text-right py-2">{item.quantity}</td>
-                    <td className="text-right py-2">
+                  <tr
+                    key={idx}
+                    className="item-row"
+                    style={{ borderBottom: "1px solid #f1f5f9" }}
+                  >
+                    <td
+                      style={{
+                        padding: "10px 14px",
+                        fontWeight: 500,
+                        color: "#334155",
+                      }}
+                    >
+                      {item.product?.name || "Product"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "10px 14px",
+                        textAlign: "right",
+                        color: "#64748b",
+                      }}
+                    >
+                      {item.quantity}
+                    </td>
+                    <td
+                      style={{
+                        padding: "10px 14px",
+                        textAlign: "right",
+                        color: "#64748b",
+                      }}
+                    >
                       Rs. {item.priceAtSale.toFixed(2)}
                     </td>
-                    <td className="text-right py-2 font-medium">
+                    <td
+                      style={{
+                        padding: "10px 14px",
+                        textAlign: "right",
+                        fontWeight: 600,
+                        color: "#0f172a",
+                      }}
+                    >
                       Rs. {(item.quantity * item.priceAtSale).toFixed(2)}
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="font-bold">
-                  <td colSpan="3" className="text-right py-3">
-                    Total :
-                  </td>
-                  <td className="text-right py-3">
-                    Rs. {order.totalAmount.toFixed(2)}
-                  </td>
-                </tr>
-                <tr className="text-green-600 text-sm">
-                  <td colSpan="3" className="text-right">
-                    Profit:
-                  </td>
-                  <td className="text-right">
-                    Rs. {order.totalProfit.toFixed(2)}
-                  </td>
-                </tr>
-              </tfoot>
             </table>
+          </div>
+
+          {/* Totals */}
+          <div
+            style={{
+              marginTop: 12,
+              background: "#f8fafc",
+              borderRadius: 12,
+              border: "1px solid #f1f5f9",
+              overflow: "hidden",
+            }}
+          >
+            {[
+              {
+                label: "Subtotal",
+                value: `Rs. ${order.totalAmount.toFixed(2)}`,
+                color: "#0f172a",
+                bold: false,
+              },
+              {
+                label: "Profit",
+                value: `Rs. ${order.totalProfit.toFixed(2)}`,
+                color: "#15803d",
+                bold: false,
+              },
+              {
+                label: "Margin",
+                value: `${margin}%`,
+                color: "#1d4ed8",
+                bold: false,
+              },
+            ].map((row, i, arr) => (
+              <div
+                key={row.label}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "11px 16px",
+                  borderBottom:
+                    i < arr.length - 1 ? "1px solid #f1f5f9" : "none",
+                }}
+              >
+                <span
+                  style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}
+                >
+                  {row.label}
+                </span>
+                <span
+                  style={{ fontSize: 14, fontWeight: 700, color: row.color }}
+                >
+                  {row.value}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
