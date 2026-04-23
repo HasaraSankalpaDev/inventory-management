@@ -166,7 +166,7 @@ function OrderDetailModal({ order, onClose }) {
               <tfoot>
                 <tr className="font-bold">
                   <td colSpan="3" className="text-right py-3">
-                    Total:
+                    Total :
                   </td>
                   <td className="text-right py-3">
                     Rs. {order.totalAmount.toFixed(2)}
