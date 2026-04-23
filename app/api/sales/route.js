@@ -1,4 +1,3 @@
-// app/api/sales/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
@@ -7,6 +6,44 @@ import Sale from "@/models/Sale";
 import Product from "@/models/Product";
 import InventoryLog from "@/models/InventoryLog";
 
+// ✅ GET /api/sales – Fetch sales with optional date filter
+export async function GET(req) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await dbConnect();
+
+    const { searchParams } = new URL(req.url);
+    const startDate = searchParams.get("start");
+    const endDate = searchParams.get("end");
+
+    let query = {};
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
+
+    const sales = await Sale.find(query)
+      .populate("items.product", "name")
+      .populate("cashier", "name email")
+      .sort({ createdAt: -1 });
+
+    return NextResponse.json(sales);
+  } catch (error) {
+    console.error("GET /api/sales error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// ✅ POST /api/sales – Create a new sale
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +54,6 @@ export async function POST(req) {
     await dbConnect();
     const { items, paymentMethod } = await req.json();
 
-    // Validate items
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "No items in cart" }, { status: 400 });
     }
@@ -34,7 +70,6 @@ export async function POST(req) {
     let totalAmount = 0;
     let totalProfit = 0;
 
-    // Process each item
     for (const item of items) {
       const product = await Product.findById(item.productId);
       if (!product) {
@@ -44,7 +79,6 @@ export async function POST(req) {
         );
       }
 
-      // Check stock
       if (product.stockQuantity < item.quantity) {
         return NextResponse.json(
           {
@@ -54,12 +88,10 @@ export async function POST(req) {
         );
       }
 
-      // Update stock
       const previousStock = product.stockQuantity;
       product.stockQuantity -= item.quantity;
       await product.save();
 
-      // Log inventory change
       await InventoryLog.create({
         product: product._id,
         changeType: "sale",
@@ -86,7 +118,6 @@ export async function POST(req) {
       totalProfit += itemProfit;
     }
 
-    // Create sale record
     const sale = await Sale.create({
       invoiceNumber,
       items: saleItems,
@@ -101,10 +132,7 @@ export async function POST(req) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Sale creation error:", error);
-    return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: 500 },
-    );
+    console.error("POST /api/sales error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
